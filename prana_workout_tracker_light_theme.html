@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- PWA and Mobile-Optimized Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#FAF8F5"> <!-- Soft warm off-white -->
+    <title>Prana Workout Tracker</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior-y: none;
+            -webkit-tap-highlight-color: transparent;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            background-color: #FAF8F5; /* Soft warm cream background */
+            color: #3E2723; /* Dark espresso text */
+        }
+        
+        /* Hide scrollbar for a cleaner mobile look */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .checkbox-custom {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .item-completed {
+            opacity: 0.5;
+            text-decoration: line-through;
+            color: #8D6E63; /* Muted brown/grey for completed text */
+        }
+        
+        /* Light Theme Prana Accents */
+        .prana-title-gradient {
+            background: linear-gradient(to right, #D32F2F, #F57C00, #FBC02D);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @keyframes subtle-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        .prana-card {
+            background: #FFFFFF;
+            box-shadow: 0 4px 20px rgba(139, 69, 19, 0.05), 0 1px 3px rgba(0,0,0,0.02);
+            transition: all 0.3s ease;
+        }
+        
+        .prana-btn-active { 
+            background: linear-gradient(135deg, #E53935 0%, #FB8C00 100%);
+            box-shadow: 0 4px 15px rgba(251, 140, 0, 0.3);
+            color: white;
+        }
+        
+        .prana-btn-inactive {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid #E0E0E0;
+            color: #8D6E63;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-orange-200">
+
+    <!-- Sticky Header & Tab Navigation -->
+    <header class="sticky top-0 z-20 bg-[#FAF8F5]/90 backdrop-blur-xl border-b border-orange-900/10 px-4 pt-6 pb-4 shadow-sm">
+        <h1 class="text-2xl font-black text-center mb-5 tracking-widest uppercase prana-title-gradient drop-shadow-sm">Prana Flow</h1>
+        
+        <!-- Segmented Control -->
+        <div class="flex bg-gray-200/50 p-1.5 rounded-xl shadow-inner gap-1.5 border border-gray-300/30">
+            <button id="btn-lower" onclick="setTab('lower')" class="flex-1 py-3.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 prana-btn-active uppercase tracking-wide">
+                Lower & Core
+            </button>
+            <button id="btn-upper" onclick="setTab('upper')" class="flex-1 py-3.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 prana-btn-inactive uppercase tracking-wide hover:bg-white/80">
+                Upper & Integrity
+            </button>
+        </div>
+    </header>
+
+    <!-- Workout List Container -->
+    <main class="flex-1 overflow-y-auto px-4 py-6 pb-28">
+        <!-- Progress Bar -->
+        <div class="mb-8 p-5 rounded-2xl bg-white border border-orange-100 shadow-[0_8px_30px_rgba(251,140,0,0.06)]">
+            <div class="flex justify-between text-xs uppercase tracking-widest text-orange-600 mb-3 font-bold">
+                <span>Energy Current</span>
+                <span id="progress-text">0%</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-3.5 overflow-hidden shadow-inner relative">
+                <div id="progress-bar" class="h-full rounded-full transition-all duration-500 ease-out" style="width: 0%; background: linear-gradient(90deg, #E53935, #FFB300); box-shadow: inset 0 -2px 4px rgba(0,0,0,0.1);"></div>
+            </div>
+        </div>
+
+        <!-- Exercise Items will be injected here -->
+        <div id="exercise-list" class="space-y-3"></div>
+    </main>
+
+    <!-- Fixed Footer with Reset Button -->
+    <footer class="fixed bottom-0 left-0 w-full p-4 bg-gradient-to-t from-[#FAF8F5] via-[#FAF8F5] to-transparent z-10" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
+        <button onclick="resetCurrentWorkout()" class="w-full bg-white backdrop-blur-md border border-red-200 hover:border-red-400 text-red-500 font-bold py-4 rounded-xl shadow-[0_4px_15px_rgba(229,57,53,0.1)] active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 uppercase tracking-widest text-sm">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            Reset Frequency
+        </button>
+    </footer>
+
+    <script>
+        // Exercise Data
+        const workoutData = {
+            lower: [
+                { section: "Activation", exercises: ["Calf Raises", "Tibialis Raise", "Full Knee Bend Squats", "Reverse Step Up"] },
+                { section: "Strength", exercises: ["Full Range Split Squats", "Tai Chi Squats"] },
+                { section: "Core", exercises: ["Hip Flexor Kick Out", "Back Extensions", "Side Bend"] },
+                { section: "Mobility", exercises: ["90/90 Rotation", "Pigeon Strength", "Deep Squat Rest", "Couch Stretch"] }
+            ],
+            upper: [
+                { section: "Activation", exercises: ["Banded Pull Aparts", "Crawling", "External Rotation"] },
+                { section: "Primary Strength", exercises: ["Pullups", "Pushups"] },
+                { section: "Secondary Strength", exercises: ["Pullover", "Trap 3 Raise"] },
+                { section: "Decompression", exercises: ["Deep Squat Rest", "Active Hangs"] }
+            ]
+        };
+
+        // Application State
+        let currentTab = 'lower';
+        let progress = { lower: {}, upper: {} };
+
+        // Initialize App
+        function init() {
+            // Load state from localStorage. Using the same key ensures if you switch apps, data remains.
+            const savedProgress = localStorage.getItem('pranaWorkoutProgress');
+            if (savedProgress) {
+                progress = JSON.parse(savedProgress);
+            }
+            renderView();
+        }
+
+        // Switch Tabs
+        function setTab(tab) {
+            currentTab = tab;
+            
+            const btnLower = document.getElementById('btn-lower');
+            const btnUpper = document.getElementById('btn-upper');
+
+            if (tab === 'lower') {
+                btnLower.className = 'flex-1 py-3.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 prana-btn-active uppercase tracking-wide';
+                btnUpper.className = 'flex-1 py-3.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 prana-btn-inactive uppercase tracking-wide hover:bg-white/80';
+            } else {
+                btnUpper.className = 'flex-1 py-3.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 prana-btn-active uppercase tracking-wide';
+                btnLower.className = 'flex-1 py-3.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 prana-btn-inactive uppercase tracking-wide hover:bg-white/80';
+            }
+
+            renderView();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Toggle Exercise Completion Status
+        function toggleExercise(id) {
+            progress[currentTab][id] = !progress[currentTab][id];
+            saveProgress();
+            renderView();
+        }
+
+        // Reset Current Tab's Progress
+        function resetCurrentWorkout() {
+            if(confirm("Clear today's energy frequency?")) {
+                progress[currentTab] = {};
+                saveProgress();
+                renderView();
+            }
+        }
+
+        // Save to LocalStorage
+        function saveProgress() {
+            localStorage.setItem('pranaWorkoutProgress', JSON.stringify(progress));
+        }
+
+        // Render the UI List and Progress Bar
+        function renderView() {
+            const listContainer = document.getElementById('exercise-list');
+            const sections = workoutData[currentTab];
+            let completedCount = 0;
+            let totalCount = 0;
+            
+            listContainer.innerHTML = '';
+
+            sections.forEach((section, sIndex) => {
+                // Add Section Header
+                listContainer.insertAdjacentHTML('beforeend', `
+                    <h3 class="text-xs font-black text-orange-600/80 uppercase tracking-[0.2em] mt-8 mb-3 pl-2">${section.section}</h3>
+                `);
+
+                section.exercises.forEach((exercise, eIndex) => {
+                    totalCount++;
+                    const exId = `${sIndex}-${eIndex}`;
+                    const isCompleted = !!progress[currentTab][exId];
+                    if (isCompleted) completedCount++;
+
+                    // Build Item HTML (Large touch targets, Light theme styling)
+                    const itemHTML = `
+                        <div onclick="toggleExercise('${exId}')" 
+                             class="prana-card rounded-2xl p-5 flex items-center justify-between active:scale-[0.98] cursor-pointer border min-h-[72px] ${isCompleted ? 'bg-orange-50/60 border-orange-200' : 'border-transparent hover:border-orange-200/50'}">
+                            
+                            <span class="text-base sm:text-lg font-bold tracking-wide transition-all duration-300 ${isCompleted ? 'item-completed' : 'text-[#3E2723]'}">
+                                ${exercise}
+                            </span>
+                            
+                            <div class="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center checkbox-custom relative ${isCompleted ? 'bg-gradient-to-tr from-orange-400 to-yellow-400 shadow-[0_2px_10px_rgba(251,140,0,0.4)]' : 'border-2 border-orange-200/80 bg-orange-50/30'}">
+                                ${isCompleted ? `
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                ` : ''}
+                                <!-- Subtle pulse for unchecked state -->
+                                ${!isCompleted ? '<div class="absolute inset-0 rounded-full bg-orange-300 opacity-20 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]"></div>' : ''}
+                            </div>
+                        </div>
+                    `;
+                    listContainer.insertAdjacentHTML('beforeend', itemHTML);
+                });
+            });
+
+            // Update Progress UI
+            const percentage = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+            const progressBar = document.getElementById('progress-bar');
+            
+            progressBar.style.width = `${percentage}%`;
+            document.getElementById('progress-text').innerText = `${percentage}%`;
+            
+            // Adjust gradient based on completion
+            if(percentage === 100 && totalCount > 0) {
+                 progressBar.style.background = 'linear-gradient(90deg, #F57C00, #FFEA00)';
+            } else {
+                 progressBar.style.background = 'linear-gradient(90deg, #E53935, #FFB300)';
+            }
+        }
+
+        // Run initialization on window load
+        window.onload = init;
+    </script>
+</body>
+</html>
