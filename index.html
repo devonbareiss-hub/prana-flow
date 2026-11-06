@@ -76,25 +76,24 @@
 <body class="min-h-screen flex flex-col selection:bg-orange-200">
 
     <!-- Sticky Header & Tab Navigation -->
-    <header class="sticky top-0 z-20 bg-[#FAF8F5]/90 backdrop-blur-xl border-b border-orange-900/10 px-4 pt-6 pb-4 shadow-sm">
-        <h1 class="text-2xl font-black text-center mb-5 tracking-widest uppercase prana-title-gradient drop-shadow-sm">Prana Flow</h1>
-        
-        <!-- Segmented Control -->
-        <div class="flex bg-gray-200/50 p-1.5 rounded-xl shadow-inner gap-1.5 border border-gray-300/30">
-            <button id="btn-lower" onclick="setTab('lower')" class="flex-1 py-3.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 prana-btn-active uppercase tracking-wide">
-                Lower & Core
-            </button>
-            <button id="btn-upper" onclick="setTab('upper')" class="flex-1 py-3.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 prana-btn-inactive uppercase tracking-wide hover:bg-white/80">
-                Upper & Integrity
-            </button>
+    <header class="sticky top-0 z-50 bg-[#FAF8F5]/95 backdrop-blur-xl border-b border-orange-900/10 px-4 pt-6 pb-4 shadow-sm flex flex-col gap-4">
+        <div>
+            <h1 class="text-2xl font-black text-center mb-4 tracking-widest uppercase prana-title-gradient drop-shadow-sm">Prana Flow</h1>
+            
+            <!-- Segmented Control -->
+            <div class="flex bg-gray-200/50 p-1.5 rounded-xl shadow-inner gap-1.5 border border-gray-300/30">
+                <button id="btn-lower" onclick="setTab('lower')" class="flex-1 py-3 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 prana-btn-active uppercase tracking-wide">
+                    Lower & Core
+                </button>
+                <button id="btn-upper" onclick="setTab('upper')" class="flex-1 py-3 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 prana-btn-inactive uppercase tracking-wide hover:bg-white/80">
+                    Upper & Integrity
+                </button>
+            </div>
         </div>
-    </header>
 
-    <!-- Workout List Container -->
-    <main class="flex-1 overflow-y-auto px-4 py-6 pb-28">
-        <!-- Progress Bar -->
-        <div class="mb-8 p-5 rounded-2xl bg-white border border-orange-100 shadow-[0_8px_30px_rgba(251,140,0,0.06)]">
-            <div class="flex justify-between text-xs uppercase tracking-widest text-orange-600 mb-3 font-bold">
+        <!-- Pinned Progress Bar -->
+        <div class="p-4 rounded-2xl bg-white border border-orange-100 shadow-[0_8px_30px_rgba(251,140,0,0.06)]">
+            <div class="flex justify-between text-xs uppercase tracking-widest text-orange-600 mb-2 font-bold">
                 <span>Energy Current</span>
                 <span id="progress-text">0%</span>
             </div>
@@ -102,7 +101,10 @@
                 <div id="progress-bar" class="h-full rounded-full transition-all duration-500 ease-out" style="width: 0%; background: linear-gradient(90deg, #E53935, #FFB300); box-shadow: inset 0 -2px 4px rgba(0,0,0,0.1);"></div>
             </div>
         </div>
+    </header>
 
+    <!-- Workout List Container -->
+    <main class="flex-1 overflow-y-auto px-4 py-4 pb-28">
         <!-- Exercise Items will be injected here -->
         <div id="exercise-list" class="space-y-3"></div>
     </main>
@@ -119,22 +121,23 @@
         // Exercise Data
         const workoutData = {
             lower: [
-                { section: "Activation", exercises: ["Calf Raises", "Tibialis Raise", "Full Knee Bend Squats", "Reverse Step Up"] },
-                { section: "Strength", exercises: ["Full Range Split Squats", "Tai Chi Squats"] },
+                { section: "Activation", exercises: ["Rockers", "Calf Raises", "Tibialis Raise", "Full Knee Bend Squats", "Reverse Step Up"] },
+                { section: "Strength", exercises: ["Full Range Split Squats", "Tai Chi Squats", "Cross Hack Squat"] },
                 { section: "Core", exercises: ["Hip Flexor Kick Out", "Back Extensions", "Side Bend"] },
-                { section: "Mobility", exercises: ["90/90 Rotation", "Pigeon Strength", "Deep Squat Rest", "Couch Stretch"] }
+                { section: "Mobility", exercises: ["90/90 Rotation", "Pigeon Strength", "Deep Squat Rest", "Couch Stretch", "Decompression"] }
             ],
             upper: [
-                { section: "Activation", exercises: ["Banded Pull Aparts", "Crawling", "External Rotation"] },
+                { section: "Activation", exercises: ["Rockers", "Crawling", "Banded Pull Aparts", "External Rotation"] },
                 { section: "Primary Strength", exercises: ["Pullups", "Pushups"] },
                 { section: "Secondary Strength", exercises: ["Pullover", "Trap 3 Raise"] },
-                { section: "Decompression", exercises: ["Deep Squat Rest", "Active Hangs"] }
+                { section: "Decompression", exercises: ["Deep Squat Rest", "Active Hangs", "Forward Folds", "Decompression"] }
             ]
         };
 
         // Application State
         let currentTab = 'lower';
         let progress = { lower: {}, upper: {} };
+        let skipped = { lower: {}, upper: {} };
 
         // Initialize App
         function init() {
@@ -142,6 +145,10 @@
             const savedProgress = localStorage.getItem('pranaWorkoutProgress');
             if (savedProgress) {
                 progress = JSON.parse(savedProgress);
+            }
+            const savedSkipped = localStorage.getItem('pranaWorkoutSkipped');
+            if (savedSkipped) {
+                skipped = JSON.parse(savedSkipped);
             }
             renderView();
         }
@@ -167,7 +174,19 @@
 
         // Toggle Exercise Completion Status
         function toggleExercise(id) {
+            if (skipped[currentTab][id]) return; // Prevent checking if skipped
             progress[currentTab][id] = !progress[currentTab][id];
+            saveProgress();
+            renderView();
+        }
+
+        // Toggle Skip Status
+        function toggleSkip(event, id) {
+            event.stopPropagation(); // Prevent activating toggleExercise
+            skipped[currentTab][id] = !skipped[currentTab][id];
+            if (skipped[currentTab][id]) {
+                progress[currentTab][id] = false; // Uncheck if skipping
+            }
             saveProgress();
             renderView();
         }
@@ -176,6 +195,7 @@
         function resetCurrentWorkout() {
             if(confirm("Clear today's energy frequency?")) {
                 progress[currentTab] = {};
+                skipped[currentTab] = {};
                 saveProgress();
                 renderView();
             }
@@ -184,6 +204,7 @@
         // Save to LocalStorage
         function saveProgress() {
             localStorage.setItem('pranaWorkoutProgress', JSON.stringify(progress));
+            localStorage.setItem('pranaWorkoutSkipped', JSON.stringify(skipped));
         }
 
         // Render the UI List and Progress Bar
@@ -202,28 +223,40 @@
                 `);
 
                 section.exercises.forEach((exercise, eIndex) => {
-                    totalCount++;
                     const exId = `${sIndex}-${eIndex}`;
                     const isCompleted = !!progress[currentTab][exId];
-                    if (isCompleted) completedCount++;
+                    const isSkipped = !!skipped[currentTab][exId];
+                    
+                    if (!isSkipped) {
+                        totalCount++;
+                        if (isCompleted) completedCount++;
+                    }
 
-                    // Build Item HTML (Large touch targets, Light theme styling)
+                    // Build Item HTML (Large touch targets, Light theme styling, Skip button)
                     const itemHTML = `
                         <div onclick="toggleExercise('${exId}')" 
-                             class="prana-card rounded-2xl p-5 flex items-center justify-between active:scale-[0.98] cursor-pointer border min-h-[72px] ${isCompleted ? 'bg-orange-50/60 border-orange-200' : 'border-transparent hover:border-orange-200/50'}">
+                             class="prana-card rounded-2xl p-4 sm:p-5 flex items-center justify-between active:scale-[0.98] cursor-pointer border min-h-[72px] ${(isCompleted || isSkipped) ? 'bg-orange-50/60 border-orange-200' : 'border-transparent hover:border-orange-200/50'} ${isSkipped ? 'opacity-60' : ''}">
                             
-                            <span class="text-base sm:text-lg font-bold tracking-wide transition-all duration-300 ${isCompleted ? 'item-completed' : 'text-[#3E2723]'}">
-                                ${exercise}
-                            </span>
+                            <div class="flex-1 mr-2">
+                                <span class="block text-base sm:text-lg font-bold tracking-wide transition-all duration-300 ${(isCompleted || isSkipped) ? 'item-completed' : 'text-[#3E2723]'}">
+                                    ${exercise}
+                                </span>
+                            </div>
                             
-                            <div class="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center checkbox-custom relative ${isCompleted ? 'bg-gradient-to-tr from-orange-400 to-yellow-400 shadow-[0_2px_10px_rgba(251,140,0,0.4)]' : 'border-2 border-orange-200/80 bg-orange-50/30'}">
-                                ${isCompleted ? `
-                                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                ` : ''}
-                                <!-- Subtle pulse for unchecked state -->
-                                ${!isCompleted ? '<div class="absolute inset-0 rounded-full bg-orange-300 opacity-20 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]"></div>' : ''}
+                            <div class="flex items-center gap-3">
+                                <button onclick="toggleSkip(event, '${exId}')" class="text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 ${isSkipped ? 'bg-gray-200 border-gray-300 text-gray-600' : 'bg-white border-orange-200 text-orange-500 hover:bg-orange-50 active:scale-95'}">
+                                    ${isSkipped ? 'UNSKIP' : 'SKIP'}
+                                </button>
+                                
+                                <div class="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center checkbox-custom relative ${isCompleted ? 'bg-gradient-to-tr from-orange-400 to-yellow-400 shadow-[0_2px_10px_rgba(251,140,0,0.4)]' : (isSkipped ? 'border-2 border-gray-300 bg-gray-100' : 'border-2 border-orange-200/80 bg-orange-50/30')}">
+                                    ${isCompleted ? `
+                                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    ` : ''}
+                                    <!-- Subtle pulse for unchecked state -->
+                                    ${(!isCompleted && !isSkipped) ? '<div class="absolute inset-0 rounded-full bg-orange-300 opacity-20 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]"></div>' : ''}
+                                </div>
                             </div>
                         </div>
                     `;
